@@ -1,0 +1,6 @@
+[submodule "Spoons/PaperWM.spoon"]
+	path = Spoons/PaperWM.spoon
+	url = https://github.com/mogenson/PaperWM.spoon
+[submodule "Spoons/Swipe.spoon"]
+	path = Spoons/Swipe.spoon
+	url = https://github.com/mogenson/Swipe.spoon
