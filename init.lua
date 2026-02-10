@@ -5,7 +5,7 @@ PaperWM:bindHotkeys({
 	focus_right = { { "alt", "cmd" }, "right" },
 
 	-- resize window width with up/down arrows
-	increase_width = { { "alt", "cmd" }, "up" },   -- wider
+	increase_width = { { "alt", "cmd" }, "up" }, -- wider
 	decrease_width = { { "alt", "cmd" }, "down" }, -- narrower
 
 	-- switch windows by cycling forward/backward
@@ -25,7 +25,6 @@ PaperWM:bindHotkeys({
 	cycle_width = { { "alt", "cmd" }, "r" },
 	reverse_cycle_width = { { "ctrl", "alt", "cmd" }, "r" },
 
-
 	-- move focused window into / out of a column
 	slurp_in = { { "alt", "cmd" }, "i" },
 	barf_out = { { "alt", "cmd" }, "o" },
@@ -34,17 +33,6 @@ PaperWM:bindHotkeys({
 	toggle_floating = { { "alt", "cmd", "shift" }, "escape" },
 	-- raise all floating windows on top of tiled windows
 	focus_floating = { { "alt", "cmd", "shift" }, "f" },
-
-	-- focus the first / second / etc window in the current space
-	focus_window_1 = { { "cmd", "shift" }, "1" },
-	focus_window_2 = { { "cmd", "shift" }, "2" },
-	focus_window_3 = { { "cmd", "shift" }, "3" },
-	focus_window_4 = { { "cmd", "shift" }, "4" },
-	focus_window_5 = { { "cmd", "shift" }, "5" },
-	focus_window_6 = { { "cmd", "shift" }, "6" },
-	focus_window_7 = { { "cmd", "shift" }, "7" },
-	focus_window_8 = { { "cmd", "shift" }, "8" },
-	focus_window_9 = { { "cmd", "shift" }, "9" },
 
 	-- switch to a new Mission Control space
 	switch_space_l = { { "alt", "cmd" }, "," },
@@ -124,7 +112,9 @@ local function createBorder(win)
 end
 
 local function fadeOutBorder(border)
-	if not border then return end
+	if not border then
+		return
+	end
 	local step = 0
 	local currentAlpha = border:alpha()
 	local timer
@@ -142,7 +132,9 @@ local function fadeOutBorder(border)
 end
 
 local function fadeInBorder(border)
-	if fadeInTimer then fadeInTimer:stop() end
+	if fadeInTimer then
+		fadeInTimer:stop()
+	end
 	local step = 0
 	fadeInTimer = hs.timer.doEvery(fadeDuration / fadeSteps, function()
 		step = step + 1
@@ -164,7 +156,9 @@ local function hideBorderAfterInactivity()
 end
 
 local function resetInactivityTimer()
-	if inactivityTimer then inactivityTimer:stop() end
+	if inactivityTimer then
+		inactivityTimer:stop()
+	end
 	inactivityTimer = hs.timer.doAfter(inactivityTimeout, hideBorderAfterInactivity)
 end
 
@@ -187,7 +181,9 @@ end
 
 local function onWindowMoved()
 	local win = hs.window.focusedWindow()
-	if not win or not focusBorder then return end
+	if not win or not focusBorder then
+		return
+	end
 	focusBorder:frame(win:frame())
 end
 
