@@ -65,7 +65,7 @@ PaperWM:start()
 local actions = PaperWM.actions.actions()
 local current_id, threshold
 Swipe = hs.loadSpoon("Swipe")
-Swipe:start(2, function(direction, distance, id)
+Swipe:start(3, function(direction, distance, id)
 	if id == current_id then
 		if distance > threshold then
 			threshold = math.huge -- trigger once per swipe
