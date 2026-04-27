@@ -1,4 +1,4 @@
-PaperWM = hs.loadSpoon("PaperWM")
+local PaperWM = hs.loadSpoon("PaperWM")
 PaperWM:bindHotkeys({
 	-- switch to a new focused window in tiled grid
 	focus_left = { { "alt", "cmd" }, "left" },
@@ -64,7 +64,7 @@ PaperWM:start()
 -- Use Swipe.spoon for smoother window switching with 2-finger horizontal swipe
 local actions = PaperWM.actions.actions()
 local current_id, threshold
-Swipe = hs.loadSpoon("Swipe")
+local Swipe = hs.loadSpoon("Swipe")
 Swipe:start(3, function(direction, distance, id)
 	if id == current_id then
 		if distance > threshold then
@@ -87,13 +87,14 @@ end)
 local focusBorder = nil
 local fadeInTimer = nil
 local inactivityTimer = nil
+local pendingDeletes = {} -- canvas -> timer, for borders being faded out
+
 local borderWidth = 3
 local borderAlpha = 0.5
 local borderColor = { red = 0.4, green = 0.6, blue = 0.9 }
-local fadeDuration = 0.1 -- 100ms
-local fadeSteps = 10
-local inactivityTimeout = 10 -- seconds before border fades out
-local pendingDeletes = {} -- track borders being faded out
+local fadeSteps = 8
+local fadeInterval = 0.025 -- 25ms steps → 200ms total fade
+local inactivityTimeout = 10
 
 local function createBorder(win)
 	local frame = win:frame()
@@ -112,20 +113,22 @@ local function createBorder(win)
 end
 
 local function fadeOutBorder(border)
-	if not border then
-		return
-	end
+	if not border then return end
+	-- cancel any existing fade for this border (shouldn't happen, but be safe)
+	local existing = pendingDeletes[border]
+	if existing then existing:stop() end
+
 	local step = 0
-	local currentAlpha = border:alpha()
+	local startAlpha = border:alpha()
 	local timer
-	timer = hs.timer.doEvery(fadeDuration / fadeSteps, function()
+	timer = hs.timer.doEvery(fadeInterval, function()
 		step = step + 1
 		if step >= fadeSteps then
 			timer:stop()
 			pendingDeletes[border] = nil
 			border:delete()
 		else
-			border:alpha(currentAlpha * (1 - step / fadeSteps))
+			border:alpha(startAlpha * (1 - step / fadeSteps))
 		end
 	end)
 	pendingDeletes[border] = timer
@@ -134,9 +137,10 @@ end
 local function fadeInBorder(border)
 	if fadeInTimer then
 		fadeInTimer:stop()
+		fadeInTimer = nil
 	end
 	local step = 0
-	fadeInTimer = hs.timer.doEvery(fadeDuration / fadeSteps, function()
+	fadeInTimer = hs.timer.doEvery(fadeInterval, function()
 		step = step + 1
 		if step >= fadeSteps then
 			fadeInTimer:stop()
@@ -158,40 +162,51 @@ end
 local function resetInactivityTimer()
 	if inactivityTimer then
 		inactivityTimer:stop()
+		inactivityTimer = nil
 	end
 	inactivityTimer = hs.timer.doAfter(inactivityTimeout, hideBorderAfterInactivity)
 end
 
+local debounceTimer = nil
 local function onFocusChanged()
-	local win = hs.window.focusedWindow()
-
-	-- Fade out old border
-	if focusBorder then
-		fadeOutBorder(focusBorder)
-		focusBorder = nil
+	-- debounce: rapid focus changes (cmd-tab through many windows) collapse into one update
+	if debounceTimer then
+		debounceTimer:stop()
 	end
+	debounceTimer = hs.timer.doAfter(0.05, function()
+		debounceTimer = nil
+		local win = hs.window.focusedWindow()
 
-	-- Create and fade in new border
-	if win then
-		focusBorder = createBorder(win)
-		fadeInBorder(focusBorder)
-		resetInactivityTimer()
-	end
+		if focusBorder then
+			fadeOutBorder(focusBorder)
+			focusBorder = nil
+		end
+
+		if win then
+			focusBorder = createBorder(win)
+			fadeInBorder(focusBorder)
+			resetInactivityTimer()
+		end
+	end)
 end
 
 local function onWindowMoved()
 	local win = hs.window.focusedWindow()
-	if not win or not focusBorder then
-		return
-	end
+	if not win or not focusBorder then return end
 	focusBorder:frame(win:frame())
 end
 
 -- Update border on window focus change
-focusWatcher = hs.window.filter.default
+-- Note: only subscribe to windowFocused (not windowUnfocused) — each focus change
+-- fires windowFocused on the new window, so subscribing to both would double-trigger.
+local focusWatcher = hs.window.filter.default
+focusWatcher:unsubscribe(onFocusChanged)
+focusWatcher:unsubscribe(onWindowMoved)
 focusWatcher:subscribe(hs.window.filter.windowFocused, onFocusChanged)
 focusWatcher:subscribe(hs.window.filter.windowMoved, onWindowMoved)
-focusWatcher:subscribe(hs.window.filter.windowUnfocused, onFocusChanged)
+
+-- Reload weekly to prevent hs.window.filter internal state from growing unbounded
+hs.timer.doEvery(7 * 24 * 60 * 60, hs.reload)
 
 -- Initial border
 onFocusChanged()
